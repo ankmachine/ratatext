@@ -42,7 +42,15 @@ impl Component for Home {
     }
 
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        frame.render_widget(Paragraph::new("hello world"), area);
+        let vertical = Layout::vertical([
+            Constraint::Length(1),
+            Constraint::Length(3),
+            Constraint::Min(1),
+        ]);
+
+        let [help_area, input_area, messages_area] = vertical.areas(frame.area());
+        let input = Paragraph::new("hello world").block(Block::bordered().title("Input"));
+        frame.render_widget(input, input_area);
         Ok(())
     }
 }
