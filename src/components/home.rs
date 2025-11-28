@@ -1,5 +1,6 @@
 use color_eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use futures::future::ok;
 use ratatui::{prelude::*, widgets::*};
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -98,8 +99,24 @@ impl Component for Home {
 
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
         match key.code {
-            KeyCode::Char(to_insert) => self.enter_char(to_insert),
-            _ => None,
+            KeyCode::Char(to_insert) => {
+                self.enter_char(to_insert);
+                Ok(None)
+            }
+            // KeyCode::Enter => self.submit_message(),
+            KeyCode::Backspace => {
+                self.delete_char();
+                Ok(None)
+            }
+            KeyCode::Left => {
+                self.move_cursor_left();
+                Ok(None)
+            }
+            KeyCode::Right => {
+                self.move_cursor_right();
+                Ok(None)
+            }
+            _ => Ok(None),
         }
     }
 
@@ -107,9 +124,9 @@ impl Component for Home {
         let vertical = Layout::vertical([Constraint::Percentage(15), Constraint::Percentage(85)]);
 
         let [input_area, list_area] = vertical.areas(frame.area());
-        let input = Paragraph::new("hello world").block(Block::bordered().title("Input"));
+        let input = Paragraph::new(self.input.as_str()).block(Block::bordered().title("Input"));
         frame.render_widget(input, input_area);
-        let list = Paragraph::new("hello world").block(Block::bordered().title("Input"));
+        let list = Paragraph::new("hello world").block(Block::bordered().title("List"));
         frame.render_widget(list, list_area);
         Ok(())
     }
