@@ -1,11 +1,10 @@
 use color_eyre::Result;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use futures::future::ok;
+use crossterm::event::KeyCode;
 use ratatui::{prelude::*, widgets::*};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::Component;
-use crate::{action::Action, config::Config, tui::Event};
+use crate::{action::Action, config::Config};
 
 #[derive(Default)]
 pub struct Home {
@@ -67,7 +66,7 @@ impl Home {
         new_cursor_pos.clamp(0, self.input.chars().count())
     }
 
-    fn reset_cursor(&mut self) {
+    fn _reset_cursor(&mut self) {
         self.character_index = 0;
     }
 }
@@ -120,7 +119,7 @@ impl Component for Home {
         }
     }
 
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, _area: Rect) -> Result<()> {
         let vertical = Layout::vertical([Constraint::Percentage(15), Constraint::Percentage(85)]);
 
         let [input_area, list_area] = vertical.areas(frame.area());
