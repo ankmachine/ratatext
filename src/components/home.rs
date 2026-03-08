@@ -82,19 +82,19 @@ impl Component for Home {
         Ok(())
     }
 
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        match action {
-            Action::Tick => {
+    // fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    //     match action {
+    //         Action::Tick => {
 
-                // add any logic here that should run on every tick
-            }
-            Action::Render => {
-                // add any logic here that should run on every render
-            }
-            _ => {}
-        }
-        Ok(None)
-    }
+    //             // add any logic here that should run on every tick
+    //         }
+    //         Action::Render => {
+    //             // add any logic here that should run on every render
+    //         }
+    //         _ => {}
+
+    //     Ok(None)
+    // }
 
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
         match key.code {
