@@ -1,8 +1,12 @@
-use reqwest::blocking;
+use reqwest;
+use tokio::sync::mpsc;
 
-/// Fetches the body of a website as a String
-pub fn fetch_data() -> Result<String, Box<dyn std::error::Error>> {
-    let response = blocking::get("https://www.rust-lang.org")?; // Send the request
-    let body = response.text()?; // Extract the text body
-    Ok(body)
+pub async fn fetch_data(tx: mpsc::UnboundedSender<String>) {
+    // Perform the background work
+    if let Ok(response) = reqwest::get("https://api.example.com").await {
+        if let Ok(text) = response.text().await {
+            // Send the result back to the main loop
+            let _ = tx.send(text);
+        }
+    }
 }
