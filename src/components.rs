@@ -10,7 +10,7 @@ use crate::{action::Action, config::Config, tui::Event};
 
 pub mod fps;
 pub mod home;
-pub mod query_list;
+pub mod process_data;
 
 /// `Component` is a trait that represents a visual and interactive element of the user interface.
 ///

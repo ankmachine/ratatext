@@ -4,7 +4,11 @@ use ratatui::{prelude::*, widgets::*};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::Component;
-use crate::{action::Action, components::query_list, config::Config};
+use crate::{
+    action::Action,
+    components::process_data::{self, DataProcessor},
+    config::Config,
+};
 
 #[derive(Default)]
 pub struct Home {
@@ -120,7 +124,7 @@ impl Component for Home {
     }
 
     fn draw(&mut self, frame: &mut Frame, _area: Rect) -> Result<()> {
-        query_list::fetch_data();
+        process_data::fetch_data();
         let vertical = Layout::vertical([Constraint::Percentage(15), Constraint::Percentage(85)]);
 
         let [input_area, list_area] = vertical.areas(frame.area());
@@ -131,3 +135,5 @@ impl Component for Home {
         Ok(())
     }
 }
+
+
