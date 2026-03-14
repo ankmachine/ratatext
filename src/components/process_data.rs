@@ -1,7 +1,8 @@
-use color_eyre::{Result, eyre};
+use color_eyre::Result;
 use std::time::Duration;
 use tokio::time::sleep;
 
+#[derive(Clone, Copy)]
 pub struct DataProcessor;
 
 impl DataProcessor {
@@ -24,7 +25,7 @@ impl DataProcessor {
             .get("https://httpbin.org/json")
             .send()
             .await
-            .map_err(|r| color_eyre::eyre::eyre!("http request failed: {}", e))?;
+            .map_err(|e| color_eyre::eyre::eyre!("http request failed: {}", e))?;
         let body = res
             .text()
             .await
@@ -42,6 +43,16 @@ impl DataProcessor {
             "DELTA".to_string(),
         ]);
         Ok(result)
+    }
+
+    pub async fn fetch_list_safe(&self) -> Vec<String> {
+        match self.fetch_list().await {
+            Ok(list_data) => list_data,
+            Err(e) => {
+                eprintln!("Failed to fetch: {}", e);
+                vec!["Bad Network".to_string()]
+            }
+        }
     }
 }
 impl Default for DataProcessor {

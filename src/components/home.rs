@@ -4,11 +4,9 @@ use ratatui::{prelude::*, widgets::*};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::Component;
-use crate::{
-    action::Action,
-    components::process_data::{self, DataProcessor},
-    config::Config,
-};
+use super::process_data::DataProcessor;
+
+use crate::{action::Action, config::Config};
 
 #[derive(Default)]
 pub struct Home {
@@ -16,11 +14,19 @@ pub struct Home {
     config: Config,
     input: String,
     character_index: usize,
+    search_list: Vec<String>,
+    data_process: DataProcessor,
+    is_loading: bool,
 }
 
 impl Home {
     pub fn new() -> Self {
-        Self::default()
+        Home {
+            search_list: vec!["Loading ...".to_string()],
+            data_process: DataProcessor::new(),
+            is_loading: true,
+            ..Default::default()
+        }
     }
     fn move_cursor_left(&mut self) {
         let cursor_moved_left = self.character_index.saturating_sub(1);
@@ -73,11 +79,22 @@ impl Home {
     fn _reset_cursor(&mut self) {
         self.character_index = 0;
     }
+
+    pub fn update_search_list(&mut self, search_list: Vec<String>) {
+        self.search_list = search_list;
+        self.is_loading = false;
+    }
 }
 
 impl Component for Home {
     fn register_action_handler(&mut self, tx: UnboundedSender<Action>) -> Result<()> {
-        self.command_tx = Some(tx);
+        self.command_tx = Some(tx.clone());
+
+        let processor = self.data_process.clone();
+        tokio::spawn(async move {
+            let search_list = processor.fetch_list_safe().await;
+            let _ = tx.send(Action::DataLoaded(search_list));
+        });
         Ok(())
     }
 
@@ -86,19 +103,22 @@ impl Component for Home {
         Ok(())
     }
 
-    // fn update(&mut self, action: Action) -> Result<Option<Action>> {
-    //     match action {
-    //         Action::Tick => {
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        match action {
+            Action::Tick => {
 
-    //             // add any logic here that should run on every tick
-    //         }
-    //         Action::Render => {
-    //             // add any logic here that should run on every render
-    //         }
-    //         _ => {}
-
-    //     Ok(None)
-    // }
+                // add any logic here that should run on every tick
+            }
+            Action::Render => {
+                // add any logic here that should run on every render
+            }
+            Action::DataLoaded(search_list) => {
+                self.update_search_list(search_list);
+            }
+            _ => {}
+        }
+        Ok(None)
+    }
 
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
         match key.code {
@@ -124,16 +144,19 @@ impl Component for Home {
     }
 
     fn draw(&mut self, frame: &mut Frame, _area: Rect) -> Result<()> {
-        process_data::fetch_data();
         let vertical = Layout::vertical([Constraint::Percentage(15), Constraint::Percentage(85)]);
 
         let [input_area, list_area] = vertical.areas(frame.area());
         let input = Paragraph::new(self.input.as_str()).block(Block::bordered().title("Input"));
         frame.render_widget(input, input_area);
-        let list = Paragraph::new("hello world").block(Block::bordered().title("List"));
+        let list = List::new(
+            self.search_list
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>(),
+        )
+        .block(Block::bordered().title("List"));
         frame.render_widget(list, list_area);
         Ok(())
     }
 }
-
-
