@@ -5,7 +5,7 @@
 Boilerplate for building interactive search-the-list TUI application using Ratatui.
 
 ## Current status
-The application can fetch list asynchronously without blocking the application. I have added deliberate delay of 500ms to show that.
+you can now fuzzy search through list
 
-## Next Step
-Next Step is to add fuzzy search.
+## Next Steps
+Need to improve the stream data of list.

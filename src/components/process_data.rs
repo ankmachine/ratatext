@@ -41,6 +41,10 @@ impl DataProcessor {
             "GAMMA".to_string(),
             "BETA".to_string(),
             "DELTA".to_string(),
+            "Some".to_string(),
+            "cherry".to_string(),
+            "workflow".to_string(),
+            "tiny".to_string(),
         ]);
         Ok(result)
     }

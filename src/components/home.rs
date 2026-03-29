@@ -1,10 +1,10 @@
-use color_eyre::Result;
-use crossterm::event::KeyCode;
-use ratatui::{prelude::*, widgets::*};
-use tokio::sync::mpsc::UnboundedSender;
-
 use super::Component;
 use super::process_data::DataProcessor;
+use color_eyre::Result;
+use crossterm::event::KeyCode;
+use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
+use ratatui::{prelude::*, widgets::*};
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{action::Action, config::Config};
 
@@ -17,12 +17,17 @@ pub struct Home {
     search_list: Vec<String>,
     data_process: DataProcessor,
     is_loading: bool,
+    filtered_list: Vec<String>,
+    fuzzy_matcher: SkimMatcherV2,
 }
 
 impl Home {
     pub fn new() -> Self {
+        let initial_list = vec!["Loading ...".to_string()];
         Home {
-            search_list: vec!["Loading ...".to_string()],
+            search_list: initial_list.clone(),
+            filtered_list: initial_list,
+            fuzzy_matcher: SkimMatcherV2::default(),
             data_process: DataProcessor::new(),
             is_loading: true,
             ..Default::default()
@@ -42,6 +47,7 @@ impl Home {
         let index = self.byte_index();
         self.input.insert(index, new_char);
         self.move_cursor_right();
+        self.update_filtered_list();
     }
     fn byte_index(&self) -> usize {
         self.input
@@ -69,6 +75,7 @@ impl Home {
             // By leaving the selected one out, it is forgotten and therefore deleted.
             self.input = before_char_to_delete.chain(after_char_to_delete).collect();
             self.move_cursor_left();
+            self.update_filtered_list();
         }
     }
 
@@ -83,6 +90,25 @@ impl Home {
     pub fn update_search_list(&mut self, search_list: Vec<String>) {
         self.search_list = search_list;
         self.is_loading = false;
+        self.update_filtered_list();
+    }
+
+    fn update_filtered_list(&mut self) {
+        if self.input.trim().is_empty() {
+            self.filtered_list = self.search_list.clone();
+        } else {
+            let mut scored_item: Vec<(String, f64)> = Vec::new();
+
+            for item in &self.search_list {
+                if let Some(score) = self.fuzzy_matcher.fuzzy_match(item, &self.input) {
+                    scored_item.push((item.clone(), score as f64));
+                }
+            }
+
+            // sort
+            scored_item.sort_by(|a, b| b.1.total_cmp(&a.1));
+            self.filtered_list = scored_item.into_iter().map(|(item, _)| item).collect();
+        }
     }
 }
 
@@ -149,8 +175,13 @@ impl Component for Home {
         let [input_area, list_area] = vertical.areas(frame.area());
         let input = Paragraph::new(self.input.as_str()).block(Block::bordered().title("Input"));
         frame.render_widget(input, input_area);
+        let cursor_x = input_area.x + 1 + self.character_index as u16;
+        let cursor_y = input_area.y + 1;
+        if cursor_x > input_area.right() - 1 {
+            frame.set_cursor_position((cursor_x, cursor_y));
+        }
         let list = List::new(
-            self.search_list
+            self.filtered_list
                 .iter()
                 .map(|s| s.as_str())
                 .collect::<Vec<_>>(),
