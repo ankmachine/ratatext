@@ -5,7 +5,4 @@
 Boilerplate for building interactive search-the-list TUI application using Ratatui.
 
 ## Current status
-you can now fuzzy search through list
-
-## Next Steps
-Need to improve the stream data of list.
+you can now fuzzy search through list. List streams data now.
