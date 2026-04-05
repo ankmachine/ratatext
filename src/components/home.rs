@@ -19,6 +19,8 @@ pub struct Home {
     is_loading: bool,
     filtered_list: Vec<String>,
     fuzzy_matcher: SkimMatcherV2,
+    is_streaming: bool,
+    streaming_count: usize,
 }
 
 impl Home {
@@ -30,6 +32,8 @@ impl Home {
             fuzzy_matcher: SkimMatcherV2::default(),
             data_process: DataProcessor::new(),
             is_loading: true,
+            is_streaming: true,
+            streaming_count: 0,
             ..Default::default()
         }
     }
@@ -90,7 +94,36 @@ impl Home {
     pub fn update_search_list(&mut self, search_list: Vec<String>) {
         self.search_list = search_list;
         self.is_loading = false;
+        self.streaming_count = self.search_list.len();
         self.update_filtered_list();
+    }
+    pub fn add_item(&mut self, item: String) {
+        self.search_list.push(item.clone());
+        self.streaming_count = self.search_list.len();
+
+        if self.input.trim().is_empty() {
+            self.filtered_list.push(item);
+        } else {
+            if let Some(score) = self.fuzzy_matcher.fuzzy_match(&item, &self.input) {
+                // inset it in based on score
+                let mut inserted = false;
+                for (i, existing) in self.filtered_list.iter().enumerate() {
+                    if let Some(existing_score) =
+                        self.fuzzy_matcher.fuzzy_match(existing, &self.input)
+                    {
+                        if score > existing_score {
+                            self.filtered_list.insert(i, item.clone());
+                            inserted = true;
+
+                            break;
+                        }
+                    }
+                }
+                if !inserted {
+                    self.filtered_list.push(item)
+                }
+            }
+        }
     }
 
     fn update_filtered_list(&mut self) {
@@ -117,10 +150,13 @@ impl Component for Home {
         self.command_tx = Some(tx.clone());
 
         let processor = self.data_process.clone();
+        let tx_clone = tx.clone();
         tokio::spawn(async move {
-            let search_list = processor.fetch_list_safe().await;
-            let _ = tx.send(Action::DataLoaded(search_list));
+            let search_list = processor.fetch_initial_list_safe().await;
+            let _ = tx_clone.send(Action::DataLoaded(search_list));
         });
+        // start streaming other data
+        DataProcessor::start_streaming_list_safe(tx);
         Ok(())
     }
 
@@ -140,6 +176,12 @@ impl Component for Home {
             }
             Action::DataLoaded(search_list) => {
                 self.update_search_list(search_list);
+            }
+            Action::NewItemLoaded(item) => {
+                self.add_item(item);
+            }
+            Action::StreamingComplete => {
+                self.is_streaming = false;
             }
             _ => {}
         }

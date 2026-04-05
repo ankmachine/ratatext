@@ -13,4 +13,6 @@ pub enum Action {
     Error(String),
     Help,
     DataLoaded(Vec<String>),
+    NewItemLoaded(String),
+    StreamingComplete,
 }
